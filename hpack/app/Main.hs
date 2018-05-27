@@ -5,39 +5,62 @@ import System.Environment
 import Control.Monad
 import System.IO
 import System.Random
+import Data.List (intercalate)
 import Lib
 
 tabtest :: [Pixel]
 tabtest = [Pixel (Pos2 0 1) (Pos3 23 54 75), Pixel (Pos2 1 1) (Pos3 54 244 123), Pixel (Pos2 3 3) (Pos3 123 54 65)]
 
-data Pos2 = Pos2 { x :: Int,
-                   y :: Int
-                 } deriving (Show)
+data Pos2 = Pos2 {
+  x :: Int,
+  y :: Int
+  }
 
 data Pos3 = Pos3 {
   px :: Float,
   py :: Float,
   pz :: Float
-  } deriving (Show)
+  }
 
 data Pixel = Pixel {
   pos :: Pos2,
   color :: Pos3
-  } deriving (Show)
+  }
 
 data Centroid = Centroid {
   id_c :: Int,
   cpos :: Pos3
-  } deriving (Show)
+  }
 
 data Cluster = Cluster {
   centroid :: Centroid,
   pointslist :: [Pixel]
-  } deriving (Show)
+  }
 
 data Generation = Generation {
   clusters :: [Cluster]
-  } deriving (Show)
+  }
+
+show' :: Show a => [a] -> String
+show' = intercalate "" . map show
+
+instance Show (Pos2) where
+  show pos = "(" ++ show (x pos) ++ "," ++ show (y pos) ++ ")"
+
+instance Show (Pos3) where
+  show pos = "(" ++ show (round (px pos)) ++ "," ++ show (round (py pos)) ++ "," ++ show (round (pz pos)) ++ ")"
+
+instance Show (Pixel) where
+  show pixel = show (pos pixel) ++ " " ++ show (color pixel) ++ "\n"
+
+instance Show (Centroid) where
+  show centroid = show (cpos centroid)
+
+instance Show (Cluster) where
+  show cluster = "--\n" ++ show (centroid cluster) ++ "\n-\n" ++ show' (pointslist cluster)
+
+instance Show (Generation) where
+  show gen = show' (clusters gen)
 
 usage = do
   putStrLn "USAGE: ./imageCompressor n e IN\n"
@@ -50,9 +73,17 @@ main :: IO ()
 main = do
   args <- getArgs
   if (length args) == 3
-    then compress tabtest 4 0.8
-    --then print (firstGeneration 4 tabtest)
+    --then compress tabtest 4 0.8
+    then parseArgs args
     else usage
+
+parseArgs :: [String] -> IO ()
+parseArgs args = do
+  let k = read (args !! 0) :: Int
+  let e = read (args !! 1) :: Float
+
+  pixelMap <- parseFile (args !! 2)
+  compress pixelMap k e
 
 compress :: [Pixel] -> Int -> Float -> IO ()
 compress listPixels nbCentroid convergence = do
@@ -67,11 +98,8 @@ kmean listPixels prevgen nbCentroid convergence = do
   let newGenUpdate = computeCentroids newgen nbCentroid
   let maxMoveDistance = maxCentroidsMoveDistance prevgen newGenUpdate
 
-  print maxMoveDistance
-
   if (maxMoveDistance <= convergence)
-    --then printCompressedImage newgen
-    then putStrLn "Success"
+    then putStr . show $ newGenUpdate
     else kmean listPixels newGenUpdate nbCentroid convergence
 
 dupCentroidList :: Generation -> Generation
@@ -133,6 +161,50 @@ randColor s0 = Pos3 x y z
 
 exit code = exitWith (ExitFailure code)
 
--- return an array of array of int
---makePixelMap :: String -> [[Int]]
---makePixelMap filecontent = 
+
+
+
+
+--
+
+
+--
+
+
+
+--
+
+
+
+--
+--
+
+
+--
+
+replace str a b = map (\c -> if c == a then b else c) str
+
+makePosFromString str = Pos2 (read ((words new) !! 0)) (read ((words new) !! 1))
+  where new = replace str ',' ' '
+
+makeColorFromString str = Pos3 (read ((words new) !! 0)) (read ((words new) !! 1)) (read ((words new) !! 2))
+  where new = replace str ',' ' '
+
+extractColorList list = map (\elem -> makeColorFromString ((words elem) !! 1)) list
+
+extractPosList list = map (\elem -> makePosFromString ((words elem) !! 0)) list
+
+epureRawContent rawContent = lines (filter (\c -> c /= '(' && c /= ')') rawContent)
+
+makePixelList positions colors = [ (Pixel pos color) | (pos, color) <- zip positions colors ]
+
+parseFileContent rawContent = makePixelList (extractPosList content) (extractColorList content)
+  where content = epureRawContent rawContent
+
+parseFile :: String -> IO [Pixel]
+parseFile filename = do
+  file <- openFile (filename) ReadMode
+  content <- hGetContents file
+  let pixelMap = parseFileContent content
+  return pixelMap
+
