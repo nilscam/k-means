@@ -118,13 +118,13 @@ replaceLostCentroid :: Generation -> [Int] -> Generation
 replaceLostCentroid gen seed = Generation (map(\x -> Cluster (if (length (pointslist x)) > 0 then (centroid x) else (genRandCentroid (id_c (centroid x)) (seed !! (id_c (centroid x))))) (pointslist x)) (clusters gen))
 
 -- compare 2 generation and return biggest cluster move
-minCluster :: [Cluster] -> [Cluster] -> Float
-minCluster [] [] = 99999
-minCluster [x] [y] = calcDistC (centroid x) (centroid y)
-minCluster (x:xs) (y:ys) = min (calcDistC (centroid x) (centroid y)) (minCluster xs ys)
+maxCluster :: [Cluster] -> [Cluster] -> Float
+maxCluster [] [] = 99999
+maxCluster [x] [y] = calcDistC (centroid x) (centroid y)
+maxCluster (x:xs) (y:ys) = max (calcDistC (centroid x) (centroid y)) (maxCluster xs ys)
 
 maxCentroidsMoveDistance :: Generation -> Generation -> Float
-maxCentroidsMoveDistance old new = minCluster (clusters old) (clusters new)
+maxCentroidsMoveDistance old new = maxCluster (clusters old) (clusters new)
 
 calcDistC :: Centroid -> Centroid -> Float
 calcDistC c1 c2 = sqrt(((px (cpos c1)) - (px (cpos c2))) ^ 2 + ((py (cpos c1)) - (py (cpos c2))) ^ 2 + ((pz (cpos c1)) - (pz (cpos c2))) ^ 2)
