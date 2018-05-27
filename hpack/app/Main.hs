@@ -186,23 +186,30 @@ exit code = exitWith (ExitFailure code)
 
 
 
-
+replace :: String -> Char -> Char -> String
 replace str a b = map (\c -> if c == a then b else c) str
 
+makePosFromString :: String -> Pos2
 makePosFromString str = Pos2 (read ((words new) !! 0)) (read ((words new) !! 1))
   where new = replace str ',' ' '
 
+makeColorFromString :: String -> Pos3
 makeColorFromString str = Pos3 (read ((words new) !! 0)) (read ((words new) !! 1)) (read ((words new) !! 2))
   where new = replace str ',' ' '
 
+extractColorList :: [String] -> [Pos3]
 extractColorList list = map (\elem -> makeColorFromString ((words elem) !! 1)) list
 
+extractPosList :: [String] -> [Pos2]
 extractPosList list = map (\elem -> makePosFromString ((words elem) !! 0)) list
 
+epureRawContent :: String -> [String]
 epureRawContent rawContent = lines (filter (\c -> c /= '(' && c /= ')') rawContent)
 
+makePixelList :: [Pos2] -> [Pos3] -> [Pixel]
 makePixelList positions colors = [ (Pixel pos color) | (pos, color) <- zip positions colors ]
 
+parseFileContent :: String -> [Pixel]
 parseFileContent rawContent = makePixelList (extractPosList content) (extractColorList content)
   where content = epureRawContent rawContent
 
