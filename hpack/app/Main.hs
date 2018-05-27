@@ -55,7 +55,7 @@ instance Show (Pixel) where
   show pixel = show (pos pixel) ++ " " ++ show (color pixel) ++ "\n"
 
 instance Show (Centroid) where
-  show centroid = "id = " ++ show (id_c centroid) ++ " " ++ show (cpos centroid)
+  show centroid = show (cpos centroid)
 
 instance Show (Cluster) where
   show cluster = "--\n" ++ show (centroid cluster) ++ "\n-\n" ++ show' (pointslist cluster)
@@ -74,7 +74,6 @@ main :: IO ()
 main = do
   args <- getArgs
   if (length args) == 3
-    --then compress tabtest 4 0.8
     then parseArgs args
     else usage
 
@@ -89,22 +88,34 @@ parseArgs args = do
 compress :: [Pixel] -> Int -> Float -> IO ()
 compress listPixels nbCentroid convergence = do
   let gen1 = firstGeneration nbCentroid listPixels
-  kmean listPixels gen1 nbCentroid convergence
+  let fulledCentroidExpected = (length listPixels) - ((length listPixels) - nbCentroid)
+  kmean listPixels gen1 nbCentroid convergence fulledCentroidExpected
 
-kmean :: [Pixel] -> Generation -> Int -> Float -> IO ()
-kmean listPixels prevgen nbCentroid convergence = do
+kmean :: [Pixel] -> Generation -> Int -> Float -> Int -> IO ()
+kmean listPixels prevgen nbCentroid convergence fulledCentroidExpected = do
 
-  -- recompute pixels associations with centroids
+  randNbs <-randInts nbCentroid
   let newgen = makeNewGen prevgen listPixels
-  let newGenUpdate = computeCentroids newgen nbCentroid
-  let maxMoveDistance = maxCentroidsMoveDistance prevgen newGenUpdate
 
-  if (maxMoveDistance <= convergence)
-    then putStr . show $ newGenUpdate
-    else kmean listPixels newGenUpdate nbCentroid convergence
+  if fulledCentroidExpected > (nbFulledCentroid (clusters newgen))
+    then kmean listPixels (replaceLostCentroid newgen randNbs) nbCentroid convergence fulledCentroidExpected
+    else do
+    let newGenUpdate = computeCentroids newgen nbCentroid
+    let maxMoveDistance = maxCentroidsMoveDistance prevgen newGenUpdate
+    if (maxMoveDistance <= convergence)
+      then putStr . show $ newGenUpdate
+      else kmean listPixels newGenUpdate nbCentroid convergence fulledCentroidExpected
 
 dupCentroidList :: Generation -> Generation
 dupCentroidList origin = Generation [(Cluster (centroid x) []) | x <- (clusters origin)]
+
+nbFulledCentroid :: [Cluster] -> Int
+nbFulledCentroid [] = 0
+nbFulledCentroid [x] = if (length (pointslist x)) > 0 then 1 else 0
+nbFulledCentroid (x:xs) = (nbFulledCentroid [x]) + (nbFulledCentroid xs)
+
+replaceLostCentroid :: Generation -> [Int] -> Generation
+replaceLostCentroid gen seed = Generation (map(\x -> Cluster (if (length (pointslist x)) > 0 then (centroid x) else (genRandCentroid (id_c (centroid x)) (seed !! (id_c (centroid x))))) (pointslist x)) (clusters gen))
 
 -- compare 2 generation and return biggest cluster move
 minCluster :: [Cluster] -> [Cluster] -> Float
@@ -147,10 +158,16 @@ computeCentroids :: Generation -> Int -> Generation
 computeCentroids newgen nbCentroid = Generation (map(\x -> Cluster ((genNewCentroid (pointslist x) (centroid x))) (pointslist x)) (clusters newgen))
 
 firstGeneration :: Int -> [Pixel] -> Generation
-firstGeneration nbCentroid listPixels = Generation [(Cluster (genRandCentroid x) []) | x <- [1..nbCentroid]]
+firstGeneration nbCentroid listPixels = Generation [(Cluster (genRandCentroid x x) []) | x <- [1..nbCentroid]]
 
-genRandCentroid :: Int -> Centroid
-genRandCentroid seed = Centroid seed (randColor (mkStdGen seed))
+genRandCentroid :: Int -> Int -> Centroid
+genRandCentroid id seed = Centroid id (randColor (mkStdGen seed))
+
+randInts :: Int -> IO [Int]
+randInts nb = do
+  gen <- newStdGen
+  let ns = randoms gen :: [Int]
+  return (take nb ns)
 
 randColor :: StdGen -> Pos3
 randColor s0 = Pos3 x y z
@@ -166,22 +183,9 @@ exit code = exitWith (ExitFailure code)
 
 
 
---
-
-
---
 
 
 
---
-
-
-
---
---
-
-
---
 
 replace str a b = map (\c -> if c == a then b else c) str
 
