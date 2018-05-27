@@ -167,7 +167,7 @@ randInts :: Int -> IO [Int]
 randInts nb = do
   gen <- newStdGen
   let ns = randoms gen :: [Int]
-  return (take nb ns)
+  return (take (nb + 1) ns)
 
 randColor :: StdGen -> Pos3
 randColor s0 = Pos3 x y z
