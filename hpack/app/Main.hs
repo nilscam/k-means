@@ -5,8 +5,9 @@ import System.Environment
 import Control.Monad
 import System.IO
 import System.Random
-import Data.List (intercalate)
+import Data.List
 import Lib
+import Debug.Trace
 
 tabtest :: [Pixel]
 tabtest = [Pixel (Pos2 0 1) (Pos3 23 54 75), Pixel (Pos2 1 1) (Pos3 54 244 123), Pixel (Pos2 3 3) (Pos3 123 54 65)]
@@ -54,7 +55,7 @@ instance Show (Pixel) where
   show pixel = show (pos pixel) ++ " " ++ show (color pixel) ++ "\n"
 
 instance Show (Centroid) where
-  show centroid = show (cpos centroid)
+  show centroid = "id = " ++ show (id_c centroid) ++ " " ++ show (cpos centroid)
 
 instance Show (Cluster) where
   show cluster = "--\n" ++ show (centroid cluster) ++ "\n-\n" ++ show' (pointslist cluster)
@@ -146,10 +147,10 @@ computeCentroids :: Generation -> Int -> Generation
 computeCentroids newgen nbCentroid = Generation (map(\x -> Cluster ((genNewCentroid (pointslist x) (centroid x))) (pointslist x)) (clusters newgen))
 
 firstGeneration :: Int -> [Pixel] -> Generation
-firstGeneration nbCentroid listPixels = Generation [(Cluster genRandCentroid []) | x <- [1..nbCentroid]]
+firstGeneration nbCentroid listPixels = Generation [(Cluster (genRandCentroid x) []) | x <- [1..nbCentroid]]
 
-genRandCentroid :: Centroid
-genRandCentroid = Centroid 5 (randColor (mkStdGen 42))
+genRandCentroid :: Int -> Centroid
+genRandCentroid seed = Centroid seed (randColor (mkStdGen seed))
 
 randColor :: StdGen -> Pos3
 randColor s0 = Pos3 x y z
