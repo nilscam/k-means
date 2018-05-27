@@ -161,7 +161,7 @@ firstGeneration :: Int -> [Pixel] -> Generation
 firstGeneration nbCentroid listPixels = Generation [(Cluster (genRandCentroid x x) []) | x <- [1..nbCentroid]]
 
 genRandCentroid :: Int -> Int -> Centroid
-genRandCentroid id seed = Centroid id (randColor (mkStdGen seed))
+genRandCentroid id seed = Centroid id (randColor seed)
 
 randInts :: Int -> IO [Int]
 randInts nb = do
@@ -169,12 +169,12 @@ randInts nb = do
   let ns = randoms gen :: [Int]
   return (take (nb + 1) ns)
 
-randColor :: StdGen -> Pos3
-randColor s0 = Pos3 x y z
+randColor :: Int -> Pos3
+randColor seed = Pos3 x y z
   where
-    (x, s1) = r s0
-    (y, s2) = r s1
-    (z, s3) = r s2
+    (x, s1) = r (mkStdGen seed)
+    (y, s2) = r (mkStdGen (div seed 2))
+    (z, s3) = r (mkStdGen (seed * 2))
     r = randomR (0, 255)
 
 exit code = exitWith (ExitFailure code)
