@@ -88,7 +88,7 @@ parseArgs args = do
 compress :: [Pixel] -> Int -> Float -> IO ()
 compress listPixels nbCentroid convergence = do
   let gen1 = firstGeneration nbCentroid listPixels
-  let fulledCentroidExpected = (length listPixels) - ((length listPixels) - nbCentroid)
+  let fulledCentroidExpected = if nbCentroid < (length listPixels) then ((length listPixels) - ((length listPixels) - nbCentroid)) else (length listPixels)
   kmean listPixels gen1 nbCentroid convergence fulledCentroidExpected
 
 kmean :: [Pixel] -> Generation -> Int -> Float -> Int -> IO ()
